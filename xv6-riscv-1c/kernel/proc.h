@@ -107,6 +107,7 @@ struct proc {
   char name[16];               // Process name (debugging)
 
   int nice;
+  int runtime; //added runtime into struct proc
 };
 
 extern struct proc proc[NPROC];

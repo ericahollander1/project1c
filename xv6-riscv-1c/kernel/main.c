@@ -41,5 +41,13 @@ main()
     plicinithart();   // ask PLIC for device interrupts
   }
 
-  scheduler();        
+    if(SCHEDULER == 1){
+     scheduler();
+    }
+    else if( SCHEDULER == 2){
+        scheduler_rr();
+    }
+
+
+
 }

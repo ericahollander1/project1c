@@ -8,8 +8,8 @@
 #define MAX_UINT64 (-1)
 #define EMPTY MAX_UINT64
 
-#define queuehead() (NPROC)
-#define queuetail() ((NPROC) + 1)
+#define gethead NPROC
+#define gettail NPROC + 1
 // a node of the linked list
 typedef struct qentry {
     uint64 pass; // used by the stride scheduler to keep the list sorted
@@ -20,11 +20,11 @@ typedef struct qentry {
 // a fixed size table where the index of a process in proc[] is the same in qtable[]
 qentry_t qtable[NPROC+2];
 
-int enqueue(int pid){
+uint64 enqueue(uint64 pid){
     int tail, prev; //* tail & previous node indexes *//*
 
     //printf("enqueue");
-    tail = queuetail();
+    tail = gettail;
     prev = qtable[tail].prev;
     qtable[pid].next = tail; //* insert just before tail node *//*
     qtable[pid].prev = prev;
@@ -32,12 +32,12 @@ int enqueue(int pid){
     qtable[tail].prev = pid;
     return pid;
 }
-int dequeue(){
-    int pid; //* ID of process removed *//*
+uint64 dequeue(){
+    uint64 pid; //* ID of process removed *//*
     int head; //* tail & previous node indexes *//*
 
     //printf("dequeue");
-     head = queuehead();
+     head = gethead;
      pid = qtable[head].next;
 
     qtable[head].next = qtable[pid].next;
@@ -564,22 +564,21 @@ scheduler_rr(void)
   struct proc *p;
   struct cpu *c = mycpu();
 
-   int head, tail;
-   tail = queuetail();
-   head = queuehead();
-   qtable[tail].prev = qtable[head];
-   qtable[head].next = qtable[tail];
+   //uint64 head, tail;
+   qtable[tail].prev = gethead;
+   qtable[head].next = gettail;
 
-  c->proc = 0;
-  for(p = proc; p < &proc[NPROC]; p++) {
-        enqueue(p);
+
+  for(int i = 0; i < NPROC; i++) {
+        enqueue(i);
   }
+  c->proc = 0;
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
 
-      int p = dequeue();
-      p = &proc[NPROC];
+      int pid = dequeue();
+      p = &proc[pid];
       acquire(&p->lock);
 
       if(p->state == RUNNABLE) {

@@ -15,10 +15,10 @@ typedef struct qentry {
     uint64 pass; // used by the stride scheduler to keep the list sorted
     uint64 prev; // index of previous qentry in list
     uint64 next; // index of next qentry in list
-}
+} qentry_t;
 
 // a fixed size table where the index of a process in proc[] is the same in qtable[]
-qentry qtable[NPROC+2];
+qentry_t qtable[NPROC+2];
 
 uint64 enqueue(uint64 pid){
     int tail, prev; *//* tail & previous node indexes *//*

@@ -48,6 +48,10 @@ main()
         scheduler_rr();
         printf("scheduler rr");
     }
+    else if( SCHEDULER == 3){
+            scheduler_stride();
+            printf("scheduler stride");
+        }
 
 
 

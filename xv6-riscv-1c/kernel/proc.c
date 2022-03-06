@@ -153,8 +153,9 @@ found:
   p->context.sp = p->kstack + PGSIZE;
   p->nice = 10;
   p->runtime = 0;
-  p->pass = 0;
+
   p->stride = 1000000 / nice_to_tickets[p->nice + 20];
+  p->pass = &proc[qtable[gettail].prev]->pass + p->stride;
 
   return p;
 }
@@ -755,7 +756,7 @@ scheduler_rr(void)
 uint64 stride_enqueue(
     uint64 pid /* ID of process to insert */
 ){
-  printf("entered stirde enqueue");
+  printf("entered stride enqueue");
 
 int qtableindex = gethead;
 int inserted = 0;

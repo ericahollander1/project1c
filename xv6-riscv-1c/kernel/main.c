@@ -46,6 +46,7 @@ main()
     }
     else if( SCHEDULER == 2){
         scheduler_rr();
+        printf("scheduler rr");
     }
 
 

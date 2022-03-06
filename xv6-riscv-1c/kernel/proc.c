@@ -163,7 +163,12 @@ found:
   p->runtime = 0;
 
   p->stride = 1000000 / nice_to_tickets[p->nice + 20];
-  p->pass = (&proc[qtable[gettail].prev])->pass + p->stride;
+
+  if(qtable[gettail].prev == gethead){
+        p->pass = 0;
+  }else{
+    p->pass = (&proc[qtable[gettail].prev])->pass + p->stride;
+  }
 
   return p;
 }

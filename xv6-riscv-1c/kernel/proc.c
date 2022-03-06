@@ -21,22 +21,22 @@ typedef struct qentry {
 qentry_t qtable[NPROC+2];
 
 uint64 enqueue(uint64 pid){
-    int tail, prev; *//* tail & previous node indexes *//*
+    int tail, prev; //* tail & previous node indexes *//*
 
-    printf("enqueue");
+    //printf("enqueue");
     tail = queuetail();
     prev = qtable[tail].prev;
-    qtable[pid].next = tail; *//* insert just before tail node *//*
+    qtable[pid].next = tail; //* insert just before tail node *//*
     qtable[pid].prev = prev;
     qtable[prev].next = pid;
     qtable[tail].prev = pid;
     return pid;
 }
 uint64 dequeue(){
-    uint64 pid; *//* ID of process removed *//*
-    int head, next; *//* tail & previous node indexes *//*
+    uint64 pid; //* ID of process removed *//*
+    int head, next; //* tail & previous node indexes *//*
 
-    printf("dequeue");
+    //printf("dequeue");
      head = queuehead();
      pid = qtable[head].next;
 

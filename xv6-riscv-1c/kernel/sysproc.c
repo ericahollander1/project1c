@@ -108,7 +108,7 @@ sys_nice(void)
     niceValue = 10;
   }
   myproc()->nice = niceValue;
-  myproc()->stride = = 1000000 / nice_to_tickets[niceValue + 20];
+  myproc()->stride = 1000000 / nice_to_tickets[niceValue + 20];
   return 0;
 }
 

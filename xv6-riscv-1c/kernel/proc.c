@@ -565,8 +565,8 @@ scheduler_rr(void)
   struct cpu *c = mycpu();
 
    //uint64 head, tail;
-   qtable[tail].prev = gethead;
-   qtable[head].next = gettail;
+   qtable[gettail].prev = gethead;
+   qtable[gethead].next = gettail;
 
 
   for(int i = 0; i < NPROC; i++) {

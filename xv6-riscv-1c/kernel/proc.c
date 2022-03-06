@@ -14,6 +14,23 @@ struct proc *initproc;
 
 int nextpid = 1;
 struct spinlock pid_lock;
+/* Queue function prototypes */
+
+
+typedef struct qentry {
+    uint64 pass; // used by the stride scheduler to keep the list sorted
+    uint64 prev; // index of previous qentry in list
+    uint64 next; // index of next qentry in list
+} qentry_t;
+
+
+qentry_t qtable[NPROC+2];
+
+#define MAX_UINT64 (-1)
+#define EMPTY MAX_UINT64
+#define gethead NPROC
+#define gettail NPROC + 1
+
 
 static const int nice_to_tickets[40] = {
  /* -20 */     88761,     71755,     56483,     46273,     36291,
@@ -671,23 +688,6 @@ procdump(void)
     printf("\n");
   }
 }
-
-/* Queue function prototypes */
-
-
-typedef struct qentry {
-    uint64 pass; // used by the stride scheduler to keep the list sorted
-    uint64 prev; // index of previous qentry in list
-    uint64 next; // index of next qentry in list
-} qentry_t;
-
-
-qentry_t qtable[NPROC+2];
-
-#define MAX_UINT64 (-1)
-#define EMPTY MAX_UINT64
-#define gethead NPROC
-#define gettail NPROC + 1
 
 
 uint64 enqueue(

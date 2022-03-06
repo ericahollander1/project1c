@@ -20,7 +20,7 @@ typedef struct qentry {
 // a fixed size table where the index of a process in proc[] is the same in qtable[]
 qentry_t qtable[NPROC+2];
 
-uint64 enqueue(uint64 pid){
+int enqueue(int pid){
     int tail, prev; //* tail & previous node indexes *//*
 
     //printf("enqueue");
@@ -32,9 +32,9 @@ uint64 enqueue(uint64 pid){
     qtable[tail].prev = pid;
     return pid;
 }
-uint64 dequeue(){
-    uint64 pid; //* ID of process removed *//*
-    int head, next; //* tail & previous node indexes *//*
+int dequeue(){
+    int pid; //* ID of process removed *//*
+    int head; //* tail & previous node indexes *//*
 
     //printf("dequeue");
      head = queuehead();
@@ -564,6 +564,7 @@ scheduler_rr(void)
   struct proc *p;
   struct cpu *c = mycpu();
 
+   int head, tail;
    tail = queuetail();
    head = queuehead();
    qtable[tail].prev = qtable[head];
@@ -571,7 +572,7 @@ scheduler_rr(void)
 
   c->proc = 0;
   for(p = proc; p < &proc[NPROC]; p++) {
-        enqueue(proc);
+        enqueue(p);
   }
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.

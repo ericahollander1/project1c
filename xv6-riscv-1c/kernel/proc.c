@@ -5,98 +5,6 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
-#define MAX_UINT64 (-1)
-#define EMPTY MAX_UINT64
-
-#define gethead NPROC
-#define gettail NPROC + 1
-// a node of the linked list
-typedef struct qentry {
-    uint64 pass; // used by the stride scheduler to keep the list sorted
-    uint64 prev; // index of previous qentry in list
-    uint64 next; // index of next qentry in list
-} qentry_t;
-
-// a fixed size table where the index of a process in proc[] is the same in qtable[]
-qentry_t qtable[NPROC+2];
-
-uint64 enqueue(uint64 pid){
-    int tail, prev; //* tail & previous node indexes *//*
-
-    //printf("enqueue");
-    tail = gettail;
-    prev = qtable[tail].prev;
-    qtable[pid].next = tail; //* insert just before tail node *//*
-    qtable[pid].prev = prev;
-    qtable[prev].next = pid;
-    qtable[tail].prev = pid;
-    return pid;
-}
-uint64 dequeue(){
-    uint64 pid; //* ID of process removed *//*
-    int head; //* tail & previous node indexes *//*
-
-    //printf("dequeue");
-     head = gethead;
-     pid = qtable[head].next;
-
-    qtable[head].next = qtable[pid].next;
-    qtable[qtable[pid].next].prev = head;
-    qtable[pid].next = EMPTY;
-    qtable[pid].prev = EMPTY;
-
-    return pid;
-}
-/*#define MAX_UINT64 (-1)
-#define EMPTY MAX_UINT64
-#define queuehead(q) (q)
-#define queuetail(q) ((q) + 1)
-#define isbadqid(x) (((int32)(x) < 0) || (int32)(x) >= NUMPROC-1)
-
-pid32 getfirst(qid16);
-// a node of the linked list
-typedef struct qentry {
-    uint64 pass; // used by the stride scheduler to keep the list sorted
-    uint64 prev; // index of previous qentry in list
-    uint64 next; // index of next qentry in list
-}
-
-// a fixed size table where the index of a process in proc[] is the same in qtable[]
-qentry qtable[NPROC+2];
-
-uint64 enqueue(
-    uint64 pid, *//* ID of process to insert *//*
-    uint64 q *//* ID of queue to use *//*
-){
-    int tail, prev; *//* tail & previous node indexes *//*
-
-    if (isbadqid(q) || isbadpid(pid)) {
-        return SYSERR;
-    }
-    tail = queuetail(q);
-    prev = qtable[tail].prev;
-    qtable[pid].next = tail; *//* insert just before tail node *//*
-    qtable[pid].prev = prev;
-    qtable[prev].next = pid;
-    qtable[tail].prev = pid;
-    return pid;
-}
-
-uint64 dequeue(
-    uint64 q *//* ID queue to use *//*
-    ){
-    uint64 pid; *//* ID of process removed *//*
-    if (isbadqid(q)) {
-        return SYSERR;
-    }
-    else if (isempty(q)) {
-        return EMPTY;
-    }
-    pid = getfirst(q);
-    qtable[pid].prev = EMPTY;
-    qtable[pid].next = EMPTY;
-    return pid;
-}*/
 
 struct cpu cpus[NCPU];
 
@@ -106,6 +14,17 @@ struct proc *initproc;
 
 int nextpid = 1;
 struct spinlock pid_lock;
+
+static const int nice_to_tickets[40] = {
+ /* -20 */     88761,     71755,     56483,     46273,     36291,
+ /* -15 */     29154,     23254,     18705,     14949,     11916,
+ /* -10 */      9548,      7620,      6100,      4904,      3906,
+ /*  -5 */      3121,      2501,      1991,      1586,      1277,
+ /*   0 */      1024,       820,       655,       526,       423,
+ /*   5 */       335,       272,       215,       172,       137,
+ /*  10 */       110,        87,        70,        56,        45,
+ /*  15 */        36,        29,        23,        18,        15,
+};
 
 extern void forkret(void);
 static void freeproc(struct proc *p);
@@ -124,7 +43,7 @@ struct spinlock wait_lock;
 void
 proc_mapstacks(pagetable_t kpgtbl) {
   struct proc *p;
-  
+
   for(p = proc; p < &proc[NPROC]; p++) {
     char *pa = kalloc();
     if(pa == 0)
@@ -139,7 +58,7 @@ void
 procinit(void)
 {
   struct proc *p;
-  
+
   initlock(&pid_lock, "nextpid");
   initlock(&wait_lock, "wait_lock");
   for(p = proc; p < &proc[NPROC]; p++) {
@@ -180,7 +99,7 @@ myproc(void) {
 int
 allocpid() {
   int pid;
-  
+
   acquire(&pid_lock);
   pid = nextpid;
   nextpid = nextpid + 1;
@@ -234,6 +153,8 @@ found:
   p->context.sp = p->kstack + PGSIZE;
   p->nice = 10;
   p->runtime = 0;
+  p->pass = 0;
+  p->stride = 1000000 / nice_to_tickets[p->nice + 20];
 
   return p;
 }
@@ -323,7 +244,7 @@ userinit(void)
 
   p = allocproc();
   initproc = p;
-  
+
   // allocate one user page and copy init's instructions
   // and data into it.
   uvminit(p->pagetable, initcode, sizeof(initcode));
@@ -459,7 +380,7 @@ exit(int status)
 
   // Parent might be sleeping in wait().
   wakeup(p->parent);
-  
+
   acquire(&p->lock);
 
   p->xstate = status;
@@ -515,7 +436,7 @@ wait(uint64 addr)
       release(&wait_lock);
       return -1;
     }
-    
+
     // Wait for a child to exit.
     sleep(p, &wait_lock);  //DOC: wait-sleep
   }
@@ -533,7 +454,7 @@ scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
-  
+
   c->proc = 0;
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
@@ -555,46 +476,6 @@ scheduler(void)
       }
       release(&p->lock);
     }
-  }
-}
-//alternative scheduler
-void
-scheduler_rr(void)
-{
-  struct proc *p;
-  struct cpu *c = mycpu();
-
-   //uint64 head, tail;
-   qtable[gettail].prev = gethead;
-   qtable[gethead].next = gettail;
-
-
-  for(int i = 0; i < NPROC; i++) {
-        enqueue(i);
-  }
-  c->proc = 0;
-  for(;;){
-    // Avoid deadlock by ensuring that devices can interrupt.
-    intr_on();
-
-      int pid = dequeue();
-      p = &proc[pid];
-      acquire(&p->lock);
-
-      if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
-
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-      }
-      release(&p->lock);
-
   }
 }
 
@@ -632,6 +513,7 @@ yield(void)
   struct proc *p = myproc();
   acquire(&p->lock);
   p->state = RUNNABLE;
+  p->runtime += 1;
   sched();
   release(&p->lock);
 }
@@ -663,7 +545,7 @@ void
 sleep(void *chan, struct spinlock *lk)
 {
   struct proc *p = myproc();
-  
+
   // Must acquire p->lock in order to
   // change p->state and then call sched.
   // Once we hold p->lock, we can be
@@ -786,5 +668,151 @@ procdump(void)
       state = "???";
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
+  }
+}
+
+/* Queue function prototypes */
+
+
+typedef struct qentry {
+    uint64 pass; // used by the stride scheduler to keep the list sorted
+    uint64 prev; // index of previous qentry in list
+    uint64 next; // index of next qentry in list
+} qentry_t;
+
+
+qentry_t qtable[NPROC+2];
+
+#define MAX_UINT64 (-1)
+#define EMPTY MAX_UINT64
+#define gethead NPROC
+#define gettail NPROC + 1
+
+
+uint64 enqueue(
+    uint64 pid /* ID of process to insert */
+){
+    int tail, prev; /* tail & previous node indexes */
+
+    tail = gettail;
+    prev = qtable[tail].prev;
+    qtable[pid].next = tail; /* insert just before tail node */
+    qtable[pid].prev = prev;
+    qtable[prev].next = pid;
+    qtable[tail].prev = pid;
+    return pid;
+}
+
+uint64 dequeue()
+{
+    uint64 pid; /* ID of process removed */
+    int head = gethead;
+    pid = qtable[head].next;
+    qtable[head].next = qtable[pid].next;
+    qtable[qtable[pid].next].prev = head;
+    qtable[pid].prev = EMPTY;
+    qtable[pid].next = EMPTY;
+    return pid;
+}
+
+void
+scheduler_rr(void)
+{
+  struct proc *p;
+  struct cpu *c = mycpu();
+
+  qtable[gethead].next = gettail;
+  qtable[gettail].prev = gethead;
+
+  for(int i = 0; i < NPROC; i++){
+    enqueue(i);
+  }
+
+  c->proc = 0;
+  for(;;){
+    // Avoid deadlock by ensuring that devices can interrupt.
+    intr_on();
+    int pid = dequeue();
+    p = &proc[pid];
+    acquire(&p->lock);
+    if(p->state == RUNNABLE) {
+      // Switch to chosen process.  It is the process's job
+      // to release its lock and then reacquire it
+      // before jumping back to us.
+      p->state = RUNNING;
+      c->proc = p;
+      swtch(&c->context, &p->context);
+
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;
+    }
+    release(&p->lock);
+    enqueue(pid);
+  }
+}
+
+uint64 stride_enqueue(
+    uint64 pid /* ID of process to insert */
+){
+  printf("entered stirde enqueue");
+
+int qtableindex = gethead;
+int inserted = 0;
+  while(qtable[qtableindex].next != gettail && inserted == 0){
+    if(&proc[qtableindex].stride > &proc[pid].stride){
+      qtable[pid].prev = qtableindex;
+      qtable[pid].next = qtable[qtableindex].next;
+      qtable[qtable[qtableindex].next].prev = pid; /* insert just before tail node */
+      qtable[qtableindex].next = pid;
+      inserted = 1;
+    }
+    else{
+      qtableindex = qtable[qtableindex].next;
+    }
+  }
+    if(inserted == 0){
+      qtable[pid].prev = qtable[gettail].prev;
+      qtable[pid].next = gettail;
+      qtable[qtable[gettail].prev].next = pid;
+      qtable[gettail].prev = pid;
+    }
+    return pid;
+}
+
+void
+scheduler_stride(void)
+{
+  struct proc *p;
+  struct cpu *c = mycpu();
+
+  qtable[gethead].next = gettail;
+  qtable[gettail].prev = gethead;
+
+  for(int i = 0; i < NPROC; i++){
+    stride_enqueue(i);
+  }
+
+  c->proc = 0;
+  for(;;){
+    // Avoid deadlock by ensuring that devices can interrupt.
+    intr_on();
+    int pid = dequeue();
+    p = &proc[pid];
+    acquire(&p->lock);
+    if(p->state == RUNNABLE) {
+      // Switch to chosen process.  It is the process's job
+      // to release its lock and then reacquire it
+      // before jumping back to us.
+      p->state = RUNNING;
+      c->proc = p;
+      swtch(&c->context, &p->context);
+
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;
+    }
+    release(&p->lock);
+    stride_enqueue(pid);
   }
 }

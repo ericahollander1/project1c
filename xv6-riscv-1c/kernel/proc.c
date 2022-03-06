@@ -761,7 +761,7 @@ uint64 stride_enqueue(
 int qtableindex = gethead;
 int inserted = 0;
   while(qtable[qtableindex].next != gettail && inserted == 0){
-    if(&proc[qtableindex].stride > &proc[pid].stride){
+    if(&proc[qtableindex].pass > &proc[pid].pass){
       qtable[pid].prev = qtableindex;
       qtable[pid].next = qtable[qtableindex].next;
       qtable[qtable[qtableindex].next].prev = pid; /* insert just before tail node */

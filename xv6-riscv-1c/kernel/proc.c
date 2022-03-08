@@ -763,7 +763,7 @@ int inserted = 0;
       qtable[qtable[qtableindex].next].prev = pid; /* insert just before tail node */
       qtable[qtableindex].next = pid;
       inserted = 1;
-      prinf("inserted %d\n", pid);
+      printf("inserted %d\n", pid);
     }
     else{
       qtableindex = qtable[qtableindex].next;

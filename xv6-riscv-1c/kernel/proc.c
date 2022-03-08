@@ -791,6 +791,7 @@ scheduler_stride(void)
 
   for(int i = 0; i < NPROC; i++){
     stride_enqueue(i);
+    printf("NPROC %d\n\n", NPROC);
   }
 
   c->proc = 0;

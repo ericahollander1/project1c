@@ -6,7 +6,7 @@ projects/tree/master/scheduling-xv6-lottery
 #define _PSTAT_H_
 
 #include "param.h"
-
+//update to be same variables
 struct pstat {
   int inuse[NPROC]; // whether this slot of the process table is in use (1 or 0)
   int pid[NPROC];   // the PID of each process

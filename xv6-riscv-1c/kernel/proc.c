@@ -160,13 +160,13 @@ found:
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
   p->nice = 10;
-  p->runtime = 0;
+  p->runtime = 0;//initialize runtime to 0
 
-  p->stride = 1000000 / nice_to_tickets[p->nice + 20];
+  p->stride = 1000000 / nice_to_tickets[p->nice + 20];//stride calculation
 
-  if(qtable[gettail].prev == gethead){
+  if(qtable[gettail].prev == gethead){//check if list is empty if so pass=0
         p->pass = 0;
-  }else{
+  }else{//else pass relates to the last pass value in the linked list + stride
     p->pass = (&proc[qtable[gettail].prev])->pass + p->stride;
   }
 
@@ -718,15 +718,15 @@ scheduler_rr(void)
   struct proc *p;
   struct cpu *c = mycpu();
 
-  qtable[gethead].next = gettail;
+  qtable[gethead].next = gettail;//initialize linked list
   qtable[gettail].prev = gethead;
 
   for(int i = 0; i < NPROC; i++){
     enqueue(i);
-  }
+  }//enqueue all processes
 
   c->proc = 0;
-  for(;;){
+  for(;;){//keep scheduler running
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
     int pid = dequeue();
@@ -745,7 +745,7 @@ scheduler_rr(void)
       c->proc = 0;
     }
     release(&p->lock);
-    enqueue(pid);
+    enqueue(pid);//add back to queue
   }
 }
 
@@ -770,7 +770,7 @@ int inserted = 0;
     }
   }
     if(inserted == 0){
-        printf("not inserted\n")''
+      printf("not inserted\n");
       qtable[pid].prev = qtable[gettail].prev;
       qtable[pid].next = gettail;
       qtable[qtable[gettail].prev].next = pid;

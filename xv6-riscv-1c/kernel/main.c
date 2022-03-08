@@ -41,16 +41,16 @@ main()
     plicinithart();   // ask PLIC for device interrupts
   }
 
-    if(SCHEDULER == 1){
+    if(SCHEDULER == 1){//run normal
      scheduler();
     }
-    else if( SCHEDULER == 2){
+    else if( SCHEDULER == 2){//run round robin queue
         scheduler_rr();
-        printf("scheduler rr");
+       // printf("scheduler rr");
     }
-    else if( SCHEDULER == 3){
+    else if( SCHEDULER == 3){//run stride scheduler
             scheduler_stride();
-            printf("scheduler stride");
+           // printf("scheduler stride");
         }
 
 

@@ -120,8 +120,8 @@ struct proc {
 
   int nice;
   int runtime; //added runtime into struct proc
-  int stride;
-  int pass;
+  int stride;// added stride into strcut proc
+  int pass;// added pass to struct proc
 };
 
 extern struct proc proc[NPROC];

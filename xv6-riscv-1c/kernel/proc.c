@@ -709,6 +709,7 @@ uint64 dequeue()
     qtable[qtable[pid].next].prev = head;
     qtable[pid].prev = EMPTY;
     qtable[pid].next = EMPTY;
+    printf("Dequeue %d\n", pid);
     return pid;
 }
 
